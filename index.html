@@ -1,6 +1,13 @@
 <html>
   <head></head>
   <body>
+      <div id="container">
+          <video id="camVideo" playsinline autoplay></video>
+          <canvas id="camCanvas"></canvas>
+      </div>
+    <button id="btnCamera">Start Camera</button>
+    <button id="btnCapture" disabled>Capture Frame</button>
+    <hr />
     <canvas
       id="myCanvas"
       width="200"
@@ -9,10 +16,11 @@
     ></canvas>
     <hr />
     <button id="btnCanvas">Generate Canvas</button>
-    <button id="btnVideo">Generate Video</button>
-    <button id="btnDownload">Download Video</button>
-    <button id="btnDownloadImage">Download Image</button>
-    <button id="btnPlay">Play Video</button>
+    <button id="btnVideo" disabled>Generate Video</button>
+    <button id="btnDownload" disabled>Download Video</button>
+    <button id="btnDownloadImage" disabled>Download Image</button>
+    <button id="btnPlay" disabled>Play Video</button>
+    <button id="btnDebugFiles">Show Files</button>
     <hr />
     <video id="myVideo" autoplay loop muted playsinline></video>
     <hr />

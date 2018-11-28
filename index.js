@@ -2,6 +2,79 @@ let files = [];
 let worker = startWorker();
 let video = undefined;
 
+const captureFps = 24;
+const fileCount = 100;
+
+const btnCamera = document.getElementById("btnCamera");
+const btnCapture = document.getElementById("btnCapture");
+const btnVideo = document.getElementById("btnVideo");
+const btnPlay = document.getElementById("btnPlay");
+const btnDownloadImage = document.getElementById("btnDownloadImage");
+const btnDownload = document.getElementById("btnDownload");
+const btnCanvas = document.getElementById("btnCanvas");
+
+const camVideo = document.getElementById("camVideo");
+const camCanvas = document.getElementById("camCanvas");
+// camCanvas.width = 480;
+// camCanvas.height = 360;
+
+const constraints = {
+  audio: false,
+  video: true
+};
+
+btnCamera.addEventListener("click", () => {
+  navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
+});
+
+function handleSuccess(stream) {
+  console.log("Streaming from camera!")
+  // window.stream = stream; // make stream available to browser console
+  camVideo.srcObject = stream;
+  camCanvas.width = camVideo.videoWidth / 2;
+  camCanvas.height = camVideo.videoHeight / 2;
+
+  btnCapture.disabled = false;
+}
+
+function handleError(error) {
+  console.log('navigator.getUserMedia error: ', error);
+}
+
+function captureSingleImage(index)
+{
+  camCanvas.width = camVideo.videoWidth / 2;
+  camCanvas.height = camVideo.videoHeight / 2;
+  camCanvas.getContext("2d").drawImage(camVideo,
+    0, 0, camVideo.videoWidth, camVideo.videoHeight,
+    0, 0, camCanvas.width, camCanvas.height);
+
+  dataUri = camCanvas.toDataURL("image/jpeg");
+
+  // can be done later...
+  jpegBytes = convertDataUriToBinary(dataUri);
+
+  files.push({
+    data: jpegBytes,
+    name: "img_" + index + ".jpg"
+  });
+
+  console.log("Image #" + index + " captured to files.");
+
+  if (index < fileCount) {
+    setTimeout(captureSingleImage, 1000 / captureFps, index + 1);
+  } else {
+    console.log("Capture complete.");
+    btnDownloadImage.disabled = false;
+    btnVideo.disabled = false;
+  }  
+}
+
+btnCapture.addEventListener("click", () => {
+  captureSingleImage(0)
+});
+
+
 function convertDataUriToBinary(dataUri) {
   var base64 = dataUri.substring(23);
   var raw = window.atob(base64);
@@ -31,6 +104,7 @@ function addRandomImage(index) {
   ctx.arc(x, y, r, 0, 2 * Math.PI);
   ctx.stroke();
   ctx.clear;
+
   dataUri = c.toDataURL("image/jpeg");
   jpegBytes = convertDataUriToBinary(dataUri);
 
@@ -65,6 +139,8 @@ function startWorker() {
         break;
 
       case "done":
+        btnDownload.disabled = false;
+        btnPlay.disabled = false;
         video = new Blob([msg.data.MEMFS[0].data], {
           type: "video/mp4"
         });
@@ -101,37 +177,45 @@ function saveBlob(blob, fileName) {
   document.body.appendChild(link); // Or append it whereever you want
 }
 
-document.getElementById("btnCanvas").addEventListener("click", () => {
-  for (let i = 0; i < 100; ++i) {
+btnCanvas.addEventListener("click", () => {
+  for (let i = 0; i < fileCount; ++i) {
     addRandomImage(i);
   }
+
+  console.log("Procedural generation complete.");
+  btnDownloadImage.disabled = false;
+  btnVideo.disabled = false;
 });
 
-document.getElementById("btnDownload").addEventListener("click", () => {
+btnDownload.addEventListener("click", () => {
   saveBlob(video, "video.mp4");
 });
 
-document.getElementById("btnDownloadImage").addEventListener("click", () => {
+btnDownloadImage.addEventListener("click", () => {
   //   let blob = new Blob(files[0].data, { type: "image/jpeg" });
   let blob = new Blob([files[0].data], { type: "application/octet-stream" });
   saveBlob(blob, "image.jpg");
 });
 
-document.getElementById("btnPlay").addEventListener("click", () => {
+btnPlay.addEventListener("click", () => {
   var blobUrl = URL.createObjectURL(video);
   document.getElementById("myVideo").src = blobUrl;
 });
 
-document.getElementById("btnVideo").addEventListener("click", () => {
-  //   let inputFiles = files.map(file => file.name);
-  //   let arguments = ["-r", "24", "-i"]
-  //     .concat(inputFiles)
-  //     .concat(["-v", "verbose", "output.mp4"]);
+btnDebugFiles.addEventListener("click", () =>  {
+  for (let i = 0; i < files.length; ++i) {
+    let blob = new Blob([files[i].data], { type: "application/octet-stream" });
+    var blobUrl = URL.createObjectURL(blob);
+    var image = document.createElement("img");
+    image.src = blobUrl;
+    document.body.appendChild(image);
+  }
+});
 
+btnVideo.addEventListener("click", () => {
   worker.postMessage({
+    TOTAL_MEMORY: 268435456,
     type: "run",
-    // https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg
-    // arguments: ["-r", "1", "-i", "img_%03d.jpg", "-v", "verbose", "output.mp4"],
     // https://stackoverflow.com/a/37478183/1010496
     arguments: [
       "-framerate",
@@ -147,16 +231,7 @@ document.getElementById("btnVideo").addEventListener("click", () => {
       "output.mp4"
     ],
 
-    // arguments: ["-r", "24", "-i", "img_1.jpg", "-v", "verbose", "output.mp4"],
-    // files: files
     MEMFS: files
-    //TOTAL_MEMORY: 268435456,
-    // MEMFS: [
-    //   {
-    //     name: "input.jpeg",
-    //     data: jpegBytes
-    //   }
-    // ],
     // arguments: [
     //   "-r",
     //   "60",
