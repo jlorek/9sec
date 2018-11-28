@@ -27,13 +27,24 @@ btnCamera.addEventListener("click", () => {
   navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
 });
 
+camVideo.addEventListener("play", () => {
+  console.log("Streaming from camera")
+
+  let videoW = camVideo.videoWidth;
+  let videoH = camVideo.videoHeight;
+  let canvasW = videoW / 2;
+  let canvasH = videoH / 2;
+  camCanvas.width = canvasW;
+  camCanvas.height = canvasH;
+
+  console.log(`Video dimensions: ${videoW}x${videoH}`);
+  console.log(`Canvas dimensions: ${canvasW}x${canvasH}`);
+})
+
 function handleSuccess(stream) {
-  console.log("Streaming from camera!")
+  console.log("Got access to user media")
   // window.stream = stream; // make stream available to browser console
   camVideo.srcObject = stream;
-  camCanvas.width = camVideo.videoWidth / 2;
-  camCanvas.height = camVideo.videoHeight / 2;
-
   btnCapture.disabled = false;
 }
 
@@ -43,8 +54,6 @@ function handleError(error) {
 
 function captureSingleImage(index)
 {
-  camCanvas.width = camVideo.videoWidth / 2;
-  camCanvas.height = camVideo.videoHeight / 2;
   camCanvas.getContext("2d").drawImage(camVideo,
     0, 0, camVideo.videoWidth, camVideo.videoHeight,
     0, 0, camCanvas.width, camCanvas.height);
@@ -56,7 +65,7 @@ function captureSingleImage(index)
 
   files.push({
     data: jpegBytes,
-    name: "img_" + index + ".jpg"
+    name: getFilename(index)
   });
 
   console.log("Image #" + index + " captured to files.");
@@ -68,6 +77,18 @@ function captureSingleImage(index)
     btnDownloadImage.disabled = false;
     btnVideo.disabled = false;
   }  
+}
+
+function getFilename(index) {
+  if (index < 10) {
+    index = "00" + String(index);
+  } else if (i < 100) {
+    index = "0" + String(index);
+  } else {
+    index = String(index);
+  }
+
+  return "img_" + index + ".jpg";
 }
 
 btnCapture.addEventListener("click", () => {
