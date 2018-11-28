@@ -1,8 +1,9 @@
 let worker = startWorker();
 let video = undefined;
+let cameraFacing = true;
 
-const targetDurationSec = 6;
-const targetFps = 24;
+const targetDurationSec = 0.5;
+const targetFps = 12;
 
 const fileCount = targetDurationSec * targetFps;
 const frameDuration = 1000 / targetFps;
@@ -19,16 +20,24 @@ const btnDebug = document.getElementById("btnDebug");
 const camVideo = document.getElementById("camVideo");
 const camCanvas = document.getElementById("camCanvas");
 
-const constraints = {
-  audio: false,
-  video: true
-};
-
 btnDebug.addEventListener("click", () => {
   let files = convertImagesToFiles(images);
 });
 
 btnCamera.addEventListener("click", () => {
+  // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+  const constraints = {
+    audio: false,
+    // video: true
+    video: {
+      // width: { min: 1024, ideal: 1280, max: 1920 },
+      // height: { min: 776, ideal: 720, max: 1080 },
+      facingMode: cameraFacing ? "environment" : "user"
+    }
+  };
+
+  cameraFacing = !cameraFacing;
+
   navigator.mediaDevices
     .getUserMedia(constraints)
     .then(handleSuccess)
@@ -51,7 +60,7 @@ camVideo.addEventListener("play", () => {
 
 function handleSuccess(stream) {
   console.log("Got access to user media");
-  window.stream = stream; // make stream available to browser console
+  //window.stream = stream; // make stream available to browser console
   camVideo.srcObject = stream;
   btnCapture.disabled = false;
 }
