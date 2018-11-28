@@ -1,9 +1,11 @@
-let files = [];
 let worker = startWorker();
 let video = undefined;
 
-const captureFps = 24;
-const fileCount = 100;
+const targetDurationSec = 6;
+const targetFps = 24;
+
+const fileCount = targetDurationSec * targetFps;
+const frameDuration = 1000 / targetFps;
 
 const btnCamera = document.getElementById("btnCamera");
 const btnCapture = document.getElementById("btnCapture");
@@ -12,23 +14,29 @@ const btnPlay = document.getElementById("btnPlay");
 const btnDownloadImage = document.getElementById("btnDownloadImage");
 const btnDownload = document.getElementById("btnDownload");
 const btnCanvas = document.getElementById("btnCanvas");
+const btnDebug = document.getElementById("btnDebug");
 
 const camVideo = document.getElementById("camVideo");
 const camCanvas = document.getElementById("camCanvas");
-// camCanvas.width = 480;
-// camCanvas.height = 360;
 
 const constraints = {
   audio: false,
   video: true
 };
 
+btnDebug.addEventListener("click", () => {
+  let files = convertImagesToFiles(images);
+});
+
 btnCamera.addEventListener("click", () => {
-  navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
+  navigator.mediaDevices
+    .getUserMedia(constraints)
+    .then(handleSuccess)
+    .catch(handleError);
 });
 
 camVideo.addEventListener("play", () => {
-  console.log("Streaming from camera")
+  console.log("Streaming from camera");
 
   let videoW = camVideo.videoWidth;
   let videoH = camVideo.videoHeight;
@@ -37,52 +45,75 @@ camVideo.addEventListener("play", () => {
   camCanvas.width = canvasW;
   camCanvas.height = canvasH;
 
-  console.log(`Video dimensions: ${videoW}x${videoH}`);
-  console.log(`Canvas dimensions: ${canvasW}x${canvasH}`);
-})
+  console.log(`Video dimensions = ${videoW}x${videoH}`);
+  console.log(`Canvas dimensions = ${canvasW}x${canvasH}`);
+});
 
 function handleSuccess(stream) {
-  console.log("Got access to user media")
-  // window.stream = stream; // make stream available to browser console
+  console.log("Got access to user media");
+  window.stream = stream; // make stream available to browser console
   camVideo.srcObject = stream;
   btnCapture.disabled = false;
 }
 
 function handleError(error) {
-  console.log('navigator.getUserMedia error: ', error);
+  console.log("navigator.getUserMedia error: ", error);
 }
 
-function captureSingleImage(index)
-{
-  camCanvas.getContext("2d").drawImage(camVideo,
-    0, 0, camVideo.videoWidth, camVideo.videoHeight,
-    0, 0, camCanvas.width, camCanvas.height);
+btnCapture.addEventListener("click", () => {
+  images = [];
+  files = [];
+  captureSingleImage(0);
+});
 
-  dataUri = camCanvas.toDataURL("image/jpeg");
+function captureSingleImage(index) {
+  let start = Date.now();
+  const jpegQuality = 0.9;
+  camCanvas
+    .getContext("2d")
+    .drawImage(
+      camVideo,
+      0,
+      0,
+      camVideo.videoWidth,
+      camVideo.videoHeight,
+      0,
+      0,
+      camCanvas.width,
+      camCanvas.height
+    );
 
-  // can be done later...
-  jpegBytes = convertDataUriToBinary(dataUri);
+  dataUri = camCanvas.toDataURL("image/jpeg", jpegQuality);
 
+  // could be done later, but profiling yields no advantages
   files.push({
-    data: jpegBytes,
+    data: convertDataUriToBinary(dataUri),
     name: getFilename(index)
   });
+  console.log(`Image #${index} captured`);
 
-  console.log("Image #" + index + " captured to files.");
+  let elapsed = Date.now() - start;
+  console.log(`elapsed = ${elapsed}ms`);
+
+  let wait = frameDuration - elapsed;
+  wait = wait < 0 ? 0 : wait;
+  console.log(`wait = ${wait}ms`);
 
   if (index < fileCount) {
-    setTimeout(captureSingleImage, 1000 / captureFps, index + 1);
+    setTimeout(captureSingleImage, wait, index + 1);
   } else {
-    console.log("Capture complete.");
+    console.log("Capture complete");
     btnDownloadImage.disabled = false;
     btnVideo.disabled = false;
-  }  
+  }
 }
 
 function getFilename(index) {
   if (index < 10) {
+    index = "000" + String(index);
+  } else if (index < 100) {
     index = "00" + String(index);
-  } else if (i < 100) {
+  } else if (index < 1000) {
     index = "0" + String(index);
   } else {
     index = String(index);
@@ -91,12 +122,18 @@ function getFilename(index) {
   return "img_" + index + ".jpg";
 }
 
-btnCapture.addEventListener("click", () => {
-  captureSingleImage(0)
-});
-
+function convertImagesToFiles(images) {
+  return images.map((base64imageData, index) => {
+    return {
+      data: convertDataUriToBinary(base64imageData),
+      name: getFilename(index)
+    };
+  });
+}
 
 function convertDataUriToBinary(dataUri) {
+  // skip 23 characters dataUri prefix
+  // data:image/jpeg;base64,
   var base64 = dataUri.substring(23);
   var raw = window.atob(base64);
   var rawLength = raw.length;
@@ -128,18 +165,11 @@ function addRandomImage(index) {
 
   dataUri = c.toDataURL("image/jpeg");
   jpegBytes = convertDataUriToBinary(dataUri);
-
-  if (index < 10) {
-    index = "00" + String(index);
-  } else if (i < 100) {
-    index = "0" + String(index);
-  } else {
-    index = String(index);
-  }
+  let filename = getFilename(index);
 
   files.push({
     data: jpegBytes,
-    name: "img_" + index + ".jpg"
+    name: filename
   });
 }
 
@@ -150,45 +180,39 @@ function startWorker() {
 
     switch (msg.type) {
       case "ready":
-        console.log("ffmpeg.js worker ready...");
+        console.log("ffmpeg.js > ready");
         break;
+
       case "stdout":
-        console.log(msg.data);
+        console.log("ffmpeg.js > " + msg.data);
         break;
+
       case "stderr":
-        console.log(msg.data);
+        console.log("ffmpeg.js > " + msg.data);
         break;
 
       case "done":
-        btnDownload.disabled = false;
-        btnPlay.disabled = false;
-        video = new Blob([msg.data.MEMFS[0].data], {
-          type: "video/mp4"
-        });
+        console.log("ffmpeg.js > done");
+        if (msg.data.MEMFS.length > 0) {
+          video = new Blob([msg.data.MEMFS[0].data], {
+            type: "video/mp4"
+          });
 
-        // ...
+          btnDownload.disabled = false;
+          btnPlay.disabled = false;
+        } else {
+          console.log("ffmpeg.js > no output file generated");
+        }
         break;
 
       case "exit":
-        console.log("Process exited with code " + msg.data);
+        console.log("ffmpeg.js > exited with code " + msg.data);
         break;
     }
   };
   return worker;
 }
 
-// var saveBlob = (function() {
-//   var a = document.createElement("a");
-//   document.body.appendChild(a);
-//   a.style = "display: none";
-//   return function(data, fileName) {
-//     let url = window.URL.createObjectURL(data);
-//     a.href = url;
-//     a.download = fileName;
-//     a.click();
-//     window.URL.revokeObjectURL(url);
-//   };
-// })();
 function saveBlob(blob, fileName) {
   var blobUrl = URL.createObjectURL(blob);
   var link = document.createElement("a"); // Or maybe get it from the current document
@@ -223,7 +247,7 @@ btnPlay.addEventListener("click", () => {
   document.getElementById("myVideo").src = blobUrl;
 });
 
-btnDebugFiles.addEventListener("click", () =>  {
+btnDebugFiles.addEventListener("click", () => {
   for (let i = 0; i < files.length; ++i) {
     let blob = new Blob([files[i].data], { type: "application/octet-stream" });
     var blobUrl = URL.createObjectURL(blob);
@@ -240,13 +264,11 @@ btnVideo.addEventListener("click", () => {
     // https://stackoverflow.com/a/37478183/1010496
     arguments: [
       "-framerate",
-      "30",
+      String(targetFps),
       "-pattern_type",
       "glob",
       "-i",
       "img_*.jpg",
-      //   "-vf",
-      //   "fps=25",
       "-v",
       "verbose",
       "output.mp4"
