@@ -1,12 +1,11 @@
 let worker = startWorker();
-let video = undefined;
-let cameraFacing = true;
 
-const targetDurationSec = 0.5;
-const targetFps = 12;
+const targetDurationSec = 3.0;
+const targetFps = 24;
 
 const fileCount = targetDurationSec * targetFps;
 const frameDuration = 1000 / targetFps;
+let cameraFacingFront = true;
 
 const btnCamera = document.getElementById("btnCamera");
 const btnCapture = document.getElementById("btnCapture");
@@ -14,29 +13,25 @@ const btnVideo = document.getElementById("btnVideo");
 const btnPlay = document.getElementById("btnPlay");
 const btnDownloadImage = document.getElementById("btnDownloadImage");
 const btnDownload = document.getElementById("btnDownload");
-const btnCanvas = document.getElementById("btnCanvas");
 const btnDebug = document.getElementById("btnDebug");
 
 const camVideo = document.getElementById("camVideo");
 const camCanvas = document.getElementById("camCanvas");
 
-btnDebug.addEventListener("click", () => {
-  let files = convertImagesToFiles(images);
-});
+btnDebug.addEventListener("click", () => {});
 
 btnCamera.addEventListener("click", () => {
   // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
   const constraints = {
-    audio: false,
-    // video: true
+    audio: false, // video: true
     video: {
       // width: { min: 1024, ideal: 1280, max: 1920 },
       // height: { min: 776, ideal: 720, max: 1080 },
-      facingMode: cameraFacing ? "environment" : "user"
+      facingMode: cameraFacingFront ? "user" : "environment"
     }
   };
 
-  cameraFacing = !cameraFacing;
+  cameraFacingFront = !cameraFacingFront;
 
   navigator.mediaDevices
     .getUserMedia(constraints)
@@ -154,34 +149,6 @@ function convertDataUriToBinary(dataUri) {
   return array;
 }
 
-function addRandomImage(index) {
-  var c = document.getElementById("myCanvas");
-  var ctx = c.getContext("2d");
-
-  if (files.length === 0) {
-    // https://stackoverflow.com/questions/26742180/canvas-todataurl-results-in-solid-black-image
-    ctx.fillStyle = "rgb(255, 255, 255)";
-    ctx.fillRect(0, 0, c.width, c.height);
-  }
-
-  ctx.beginPath();
-  let x = Math.floor(Math.random() * c.width);
-  let y = Math.floor(Math.random() * c.height);
-  let r = Math.floor(Math.random() * (c.height / 2) + 20);
-  ctx.arc(x, y, r, 0, 2 * Math.PI);
-  ctx.stroke();
-  ctx.clear;
-
-  dataUri = c.toDataURL("image/jpeg");
-  jpegBytes = convertDataUriToBinary(dataUri);
-  let filename = getFilename(index);
-
-  files.push({
-    data: jpegBytes,
-    name: filename
-  });
-}
-
 function startWorker() {
   let worker = new Worker("node_modules/ffmpeg.js/ffmpeg-worker-mp4.js");
   worker.onmessage = function(e) {
@@ -231,22 +198,11 @@ function saveBlob(blob, fileName) {
   document.body.appendChild(link); // Or append it whereever you want
 }
 
-btnCanvas.addEventListener("click", () => {
-  for (let i = 0; i < fileCount; ++i) {
-    addRandomImage(i);
-  }
-
-  console.log("Procedural generation complete.");
-  btnDownloadImage.disabled = false;
-  btnVideo.disabled = false;
-});
-
 btnDownload.addEventListener("click", () => {
   saveBlob(video, "video.mp4");
 });
 
 btnDownloadImage.addEventListener("click", () => {
-  //   let blob = new Blob(files[0].data, { type: "image/jpeg" });
   let blob = new Blob([files[0].data], { type: "application/octet-stream" });
   saveBlob(blob, "image.jpg");
 });

@@ -1,36 +1,20 @@
 <html>
   <head></head>
   <body>
-    <div id="container">
-      <!-- size must be > 0 for camera to produce output -->
-      <video
-        id="camVideo"
-        width="200"
-        height="200"
-        playsinline
-        autoplay
-      ></video>
-      <!-- causes safari ios to render nothing -->
-      <!-- style="display: none;" -->
-      <canvas id="camCanvas" style="width: 0px; height: 0px;"></canvas>
-    </div>
+    <!-- size must be > 0 for camera to produce output -->
+    <video id="camVideo" width="200" height="200" playsinline autoplay></video>
+    <!-- causes safari ios to render nothing -->
+    <!-- style="display: none;" -->
+    <canvas id="camCanvas" style="width: 0px; height: 0px;"></canvas>
+    <hr />
     <button id="btnCamera">Toggle Camera</button>
-    <button id="btnCapture" disabled>Capture Stream</button>
-    <button id="btnDebug">Debug</button>
-    <hr />
-    <canvas
-      id="myCanvas"
-      width="200"
-      height="200"
-      style="border:1px solid #000000;"
-    ></canvas>
-    <hr />
-    <button id="btnCanvas">Generate Canvas</button>
+    <button id="btnCapture" disabled>Capture Stream</button> <br />
     <button id="btnVideo" disabled>Generate Video</button>
     <button id="btnDownload" disabled>Download Video</button>
-    <button id="btnDownloadImage" disabled>Download Image</button>
+    <button id="btnDownloadImage" disabled>Download Image</button> <br />
     <button id="btnPlay" disabled>Play Video</button>
     <button id="btnDebugFiles">Show Files</button>
+    <button id="btnDebug">Debug</button>
     <hr />
     <video id="myVideo" autoplay loop muted playsinline></video>
     <hr />
