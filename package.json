@@ -1,0 +1,23 @@
+{
+  "name": "9sec.me",
+  "version": "0.0.1",
+  "description": "yo!",
+  "main": "index.js",
+  "dependencies": {
+    "ffmpeg.js": "^3.1.9001"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jlorek/9sec.git"
+  },
+  "author": "Jens",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jlorek/9sec/issues"
+  },
+  "homepage": "https://github.com/jlorek/9sec#readme"
+}
